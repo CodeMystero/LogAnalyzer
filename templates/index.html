@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .container {
+            display: flex;
+            align-items: flex-start; /* 아이템을 상단에 정렬 */
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        #boundsChart {
+            flex: 1;
+            max-width: 600px;
+            height: 200px;
+        }
+
+        .info, .log-box {
+            flex: 1;
+            margin-left: 20px;
+        }
+
+        .log-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto; /* 스크롤 가능하도록 설정 */
+            background-color: #f9f9f9;
+            word-wrap: break-word; /* 자동 줄바꿈 */
+            font-size: 12px; /* 글자 크기 줄이기 */
+        }
+
+        h2 {
+            margin: 5px 0;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            background-color: #eee;
+            border-radius: 3px;
+            word-wrap: break-word; /* 자동 줄바꿈 */
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Real-time Monitoring</h1>
+    <div class="container">
+        <canvas id="boundsChart"></canvas>
+        <div class="info">
+            <h2>로그 시계열 패턴 이상치 검출: <span id="MovingAverage_result"></span></h2>
+            <h2>로그 순서 패턴 이상치 검출: <span id="LSTM_result"></span></h2>
+            <div class="log-box">
+                <h3>이상 로그:</h3>
+                <div id="logEntries"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const movingAverageElement = document.getElementById('MovingAverage_result');
+        const LSTMElement = document.getElementById('LSTM_result');
+        const logEntriesElement = document.getElementById('logEntries');
+        const ctx = document.getElementById('boundsChart').getContext('2d');
+
+        const boundsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Min Bound',
+                    data: [],
+                    borderColor: 'blue',
+                    fill: false
+                }, {
+                    label: 'Max Bound',
+                    data: [],
+                    borderColor: 'red',
+                    fill: false
+                }, {
+                    label: 'User Time (Seconds)',
+                    data: [],
+                    borderColor: 'purple',
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        function fetchData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    movingAverageElement.textContent = data.result;
+                    LSTMElement.textContent = data.LSTM_result;
+
+                    // Add bounds and user_time_seconds data to chart
+                    boundsChart.data.labels.push(boundsChart.data.labels.length);
+                    boundsChart.data.datasets[0].data.push(data.bounds[0]);  // Min Bound
+                    boundsChart.data.datasets[1].data.push(data.bounds[1]);  // Max Bound
+                    boundsChart.data.datasets[2].data.push(data.user_time_seconds);  // User Time (Seconds)
+                    boundsChart.update();
+
+                    // Check if both results are 1 and log the entry
+                    if (data.result === 1 && data.LSTM_result === 1) {
+                        const logEntry = document.createElement('div');
+                        logEntry.className = 'log-entry';
+                        logEntry.textContent = `이상 로그: ${data.log}`;
+                        logEntriesElement.appendChild(logEntry);
+                    }
+                });
+        }
+
+        setInterval(fetchData, 100); // 0.1초마다 데이터 가져오기
+    </script>
+</body>
+</html>
