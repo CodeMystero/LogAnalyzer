@@ -43,7 +43,7 @@ class TimeSeriesAnomalyDetector:
         if len(self.time_series) > 1:
             # 이동 윈도우에 기반한 표준 편차 계산
             recent_data = self.time_series[-self.window_size:]  # 최근 데이터에 기반한 이동 윈도우
-            threshold = 1.96 * np.std(recent_data.dropna())
+            threshold = 1.8 * np.std(recent_data.dropna())
         else:
             threshold = np.inf  # 데이터가 충분하지 않으면 임계값을 무한대로 설정
         
@@ -81,13 +81,17 @@ class TimeSeriesAnomalyDetector:
         # 이상치 감지
         is_anomaly, threshold, residual = self.detect_anomaly(user_time_seconds, moving_avg)
 
+        # 최대값, 최소값 계산
+        min_value = moving_avg.iloc[-1] - threshold
+        max_value = moving_avg.iloc[-1] + threshold
+
         if is_anomaly:
             #print(f"Time {time_str} (in seconds: {user_time_seconds}) is detected as an anomaly.")
-            return 1
+            return 1, (min_value, max_value), user_time_seconds
             #if np.isfinite(threshold):
                 #print(f"Normal range is between {moving_avg.iloc[-1] - threshold:.2f} and {moving_avg.iloc[-1] + threshold:.2f} seconds.")
         else:
-            return 0
+            return 0, (min_value, max_value), user_time_seconds
             #print(f"Time {time_str} (in seconds: {user_time_seconds}) is not an anomaly.")
             #if np.isfinite(threshold):
                 #print(f"Normal range is between {moving_avg.iloc[-1] - threshold:.2f} and {moving_avg.iloc[-1] + threshold:.2f} seconds.")
