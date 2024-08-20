@@ -49,7 +49,6 @@ file_path = os.path.join(directory, file_name)
 
 def send_log_to_buffer_with_interval(file_path, buffer):
     
-    
     if not os.path.exists(file_path):
         print(f"{file_path} 파일을 찾을 수 없습니다.")
         return
