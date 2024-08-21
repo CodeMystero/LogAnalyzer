@@ -110,6 +110,12 @@
         const logEntriesElement = document.getElementById('logEntries');
         const logBox = document.querySelector('.log-box');
         const ctx = document.getElementById('boundsChart').getContext('2d');
+		
+		
+		<!-- 로그 넘버링을 위한 변수 추가  -->
+		let logCounter = 1;
+		<!-- 로그 넘버링을 위한 변수 추가  -->
+
 
         const boundsChart = new Chart(ctx, {
             type: 'line',
@@ -210,9 +216,14 @@
                     if (data.result === 1 && data.LSTM_result === 1) {
                         const logEntry = document.createElement('div');
                         logEntry.className = 'log-entry';
-                        logEntry.textContent = `이상 로그: ${data.log}`;
+                        logEntry.textContent = `${logCounter}. 이상 로그: ${data.log}`;
                         logEntriesElement.appendChild(logEntry);
-                        //######### 추가된 부분 #########
+						// 로그 넘버링 
+						logCounter++;
+                        
+						// 로그 추가 후 자동 스크롤
+                        logBox.scrollTop = logBox.scrollHeight;
+						
                         // 색반전 애니메이션 적용
                         logBox.classList.add('inverted');
 
@@ -220,7 +231,7 @@
                         setTimeout(() => {
                             logBox.classList.remove('inverted');
                         }, 500);
-                        //######### 추가된 부분 #########
+                        
                     }
                 });
         }
