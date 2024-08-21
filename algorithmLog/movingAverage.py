@@ -43,7 +43,7 @@ class TimeSeriesAnomalyDetector:
         if len(self.time_series) > 1:
             # 이동 윈도우에 기반한 표준 편차 계산
             recent_data = self.time_series[-self.window_size:]  # 최근 데이터에 기반한 이동 윈도우
-            threshold = 1.8 * np.std(recent_data.dropna())
+            threshold = 1.96 * np.std(recent_data.dropna())
         else:
             threshold = np.inf  # 데이터가 충분하지 않으면 임계값을 무한대로 설정
         

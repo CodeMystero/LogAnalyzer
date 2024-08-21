@@ -48,7 +48,7 @@ if __name__ == "__main__":
     sequence = load_sequence(sequence_file)
 
     # LSTM 입력 데이터 준비
-    n_steps = 200  # 입력 시퀀스의 길이
+    n_steps = 100  # 입력 시퀀스의 길이
     X, y = create_dataset(sequence, n_steps)
     
     # 데이터 스케일링 (0과 1 사이로 정규화)
@@ -84,12 +84,12 @@ if __name__ == "__main__":
 
     # 모델 정의
     input_size = 1
-    hidden_size = 256
-    num_layers = 4
+    hidden_size = 128
+    num_layers = 3
     model = LSTMModel(input_size, hidden_size, num_layers).to(device)
 
     # Adam 옵티마이저에 학습률 설정
-    learning_rate = 0.00005
+    learning_rate = 0.00001
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     # 손실 함수 정의

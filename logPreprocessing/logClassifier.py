@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 class LogClassifier:
-    def __init__(self, group_dir=None, lines_per_group=1500, ngram_range=(1, 3), min_df=2, max_df=0.8, max_features=5000):
+    def __init__(self, group_dir=None, lines_per_group=1000, ngram_range=(1, 3), min_df=2, max_df=0.8, max_features=5000):
         if group_dir is None:
             # 현재 파일의 경로를 기준으로 상위 디렉토리로 이동하여 log_groups 폴더 설정
             group_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "log_groups")

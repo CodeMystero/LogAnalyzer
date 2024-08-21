@@ -42,8 +42,8 @@ LSTMinfer = LSTMinference.LSTMInference()
 buffer_lock = threading.Lock()
 
 detector = movingAverage.TimeSeriesAnomalyDetector(window_size=60)
-directory = "log_groups/pattern_features"
-file_name = "extracted_features_group_2.csv"
+directory = "log_groups/common_features"
+file_name = "extracted_common_times.csv"
 file_path = os.path.join(directory, file_name)
 #############################################################################
 
@@ -60,16 +60,17 @@ def send_log_to_buffer_with_interval(file_path, buffer):
                 buffer.append(line.strip())
                 #print(line)
             #print(f"Line added to buffer: {line.strip()}")
-            time.sleep(0.01)  # 지정된 시간 간격 동안 대기
+            time.sleep(0.005)  # 지정된 시간 간격 동안 대기
 
 def start_log_reader_with_interval(buffer): # 인터벌 여기
     buffer.clear()
-    file_path = 'MeasurementDAQLog_20240724.log'
+    file_path = 'MeasurementDAQLog_20240730.log'
     log_thread = threading.Thread(target=send_log_to_buffer_with_interval, args=(file_path, buffer))
     log_thread.daemon = True  # 메인 스레드가 종료되면 이 스레드도 종료
     log_thread.start()
 
 def log_classifier_():
+    
     global classifier
     global positive_pattern
     
@@ -87,38 +88,43 @@ def log_classifier_():
     group_num = LSTMinfer.sentence_to_group_number(group)
     positive_pattern = group_num
     
-    return example_log, group
+    return example_log, group_num
 
-def pattern_features_(log, group):
+def pattern_features_(log, group_num):
     
-    group_num = LSTMinfer.sentence_to_group_number(group)
-    positive_pattern = group_num
+    new_log_line = log
     
-    if group == "group_1.txt":
-        pass
+    common_time_extractor = pattern_features.CommonTimeExtractor()
+    common_time_extractor.add_feature(new_log_line)
+    
+    
+    
+    
+    # if group == "group_1.txt":
+        # pass
             
-    elif group == "group_2.txt":
-        group2_extractor = pattern_features.Group2Extractor(group_number=2)
-        new_log_line = log
-        group2_extractor.add_feature(new_log_line)
-        return group_num
-    elif group == "group_3.txt":
-        pass
+    # elif group == "group_2.txt":
+        # group2_extractor = pattern_features.Group2Extractor(group_number=2)
+        # new_log_line = log
+        # group2_extractor.add_feature(new_log_line)
+        # return group_num
+    # elif group == "group_3.txt":
+        # pass
         
-    elif group == "group_4.txt":
-        pass
+    # elif group == "group_4.txt":
+        # pass
     
-    elif group == "group_5.txt":
-        pass
+    # elif group == "group_5.txt":
+        # pass
         
-    elif group == "group_6.txt":
-        pass
+    # elif group == "group_6.txt":
+        # pass
         
-    elif group == "group_7.txt":
-        pass
+    # elif group == "group_7.txt":
+        # pass
         
-    elif group == "group_8.txt":
-        pass
+    # elif group == "group_8.txt":
+        # pass
         
 def moving_average_():
     global detector 
@@ -150,8 +156,8 @@ def LSTM_inference_():
     tolerance = 2  # 허용 오차 설정
     
     
-    print(f'previous value : {values["previous"]}')
-    print(f'positive_pattern : {positive_pattern}')
+    #print(f'previous value : {values["previous"]}')
+    #print(f'positive_pattern : {positive_pattern}')
 
     if abs(values["previous"] - positive_pattern) <= tolerance:
         LSTM_result = 0  # 예측 값이 실제 값과 거의 같은 경우
@@ -164,7 +170,7 @@ def LSTM_inference_():
     
     
 def log_anomaly(log, lstm_result, result):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240724.log'
+    log_file_path = 'anomaly_MeasurementDAQLog_20240730.log'
     with open(log_file_path, 'a') as log_file:
         if lstm_result == 1 and result == 1:
             log_file.write("#############################################################################################################################################################\n")
@@ -188,21 +194,17 @@ if __name__ == "__main__":
     time.sleep(1)
     while(True):
           
-        log, log_group = log_classifier_()    
-        group_num = pattern_features_(log, log_group)
+        log, group_num = log_classifier_()    
+        pattern_features_(log, group_num)
         LSTM_result = LSTM_inference_()
         shared_data["LSTM_result"] = LSTM_result
         shared_data["log"] = log
         
-        result = 0 
-        
-        if group_num == 2:
-            
-            result, bounds, user_time_seconds = moving_average_()
-    
-            shared_data["result"] = result
-            shared_data["bounds"] = bounds
-            shared_data["user_time_seconds"] = user_time_seconds
+        result, bounds, user_time_seconds = moving_average_()
+
+        shared_data["result"] = result
+        shared_data["bounds"] = bounds
+        shared_data["user_time_seconds"] = user_time_seconds
             
         log_anomaly(log, LSTM_result, result)
             

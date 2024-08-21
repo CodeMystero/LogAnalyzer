@@ -267,7 +267,41 @@ def process_all_groups():
         else:
             print(f"File {file_path} does not exist.")
 
+class CommonTimeExtractor:
+    def __init__(self, output_dir="log_groups/common_features"):
+        self.output_dir = output_dir
+        self.output_file_path = os.path.join(self.output_dir, "extracted_common_times.csv")
 
+    def extract_time(self, data):
+        """
+        주어진 데이터에서 시간을 추출합니다.
+        """
+        time_match = re.match(r"(\d{2}:\d{2}:\d{2}\.\d{6})", data)
+        return time_match.group(1) if time_match else None
 
+    def add_feature(self, new_data):
+        """
+        주어진 데이터에서 시간 정보를 추출하고, 이를 CSV 파일에 추가합니다.
+        """
+        # 시간 정보를 추출
+        time_feature = self.extract_time(new_data)
+
+        if time_feature:
+            # 추출한 시간 정보를 DataFrame으로 변환
+            new_features_df = pd.DataFrame([{'Time': time_feature}])
+
+            # 출력 디렉토리가 존재하지 않으면 생성
+            if not os.path.exists(self.output_dir):
+                os.makedirs(self.output_dir)
+
+            # CSV 파일에 추가 (파일이 없으면 생성)
+            if not os.path.exists(self.output_file_path):
+                new_features_df.to_csv(self.output_file_path, index=False)
+                print(f"File created and first entry saved to {self.output_file_path}")
+            else:
+                new_features_df.to_csv(self.output_file_path, mode='a', header=False, index=False)
+                #print(f"New time entry appended to {self.output_file_path}")
+
+        #print(f"All extracted times saved to {self.output_file_path}")
 if __name__ == "__main__":
     process_all_groups()
