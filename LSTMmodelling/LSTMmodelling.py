@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset
 import os
-import matplotlib.pyplot as plt
 
 # GPU 사용 가능 여부 확인
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -29,7 +28,7 @@ class LSTMModel(nn.Module):
         super(LSTMModel, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.bn1 = nn.BatchNorm1d(hidden_size)
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0)
         self.fc = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
@@ -71,7 +70,7 @@ if __name__ == "__main__":
     y_test = torch.tensor(y_test, dtype=torch.float32)
 
     # 배치 크기 설정
-    batch_size = 32  # 원하는 배치 크기로 설정 (예: 32)
+    batch_size = 128  # 원하는 배치 크기로 설정 (예: 32)
 
     # DataLoader를 사용하여 데이터를 배치로 묶음
     train_dataset = TensorDataset(X_train, y_train)
@@ -84,21 +83,30 @@ if __name__ == "__main__":
 
     # 모델 정의
     input_size = 1
-    hidden_size = 256
-    num_layers = 4
+    hidden_size = 512
+    num_layers = 3
     model = LSTMModel(input_size, hidden_size, num_layers).to(device)
 
     # Adam 옵티마이저에 학습률 설정
-    learning_rate = 0.00005
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    learning_rate = 0.001
+    
+    ############# L2 정규화 및 학습률 스케줄링 추가 #############
+    # L2 정규화는 optimizer의 weight_decay 파라미터로 설정됩니다.
+    # weight_decay 값을 0.001로 설정하면, L2 정규화가 추가된 옵티마이저를 생성할 수 있습니다.
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0)
+
+    # StepLR 스케줄러 추가: 50 에포크마다 학습률을 0.1배로 줄입니다.
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+    ############# L2 정규화 및 학습률 스케줄링 추가 끝 #############
+    
 
     # 손실 함수 정의
     criterion = nn.MSELoss()
 
     # 학습
-    num_epochs = 200
+    num_epochs = 500
     best_val_loss = float('inf')
-    patience = 10
+    patience = 50
     patience_counter = 0
 
     for epoch in range(num_epochs):
@@ -129,40 +137,12 @@ if __name__ == "__main__":
 
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_train_loss}, Val Loss: {avg_val_loss}")
 
-        # 모델 저장 및 Early Stopping, 그리고 시각화 저장
+        # 모델 저장 및 Early Stopping
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             torch.save(model.state_dict(), "best_lstm_model.pth")
             patience_counter = 0
-
-            # 테스트 데이터에 대한 예측값 생성
-            y_pred = []
-            y_true = []
-
-            with torch.no_grad():
-                for X_batch, y_batch in test_loader:
-                    X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-                    y_pred_batch = model(X_batch)
-                    y_pred.extend(y_pred_batch.cpu().numpy())
-                    y_true.extend(y_batch.cpu().numpy())
-
-            # 예측값과 실제값을 배열로 변환
-            y_pred = np.array(y_pred).flatten()
-            y_true = np.array(y_true).flatten()
-
-            # 실제 값과 예측 값의 비교 플롯
-            plt.figure(figsize=(10, 6))
-            plt.scatter(y_true, y_pred, color='blue', label='Predicted vs Actual')
-            plt.plot([min(y_true), max(y_true)], [min(y_true), max(y_true)], color='red', label='Perfect Prediction Line')
-            plt.xlabel('Actual Values')
-            plt.ylabel('Predicted Values')
-            plt.title(f'Predicted vs Actual (Epoch {epoch+1})')
-            plt.legend()
-            plt.grid(True)
-
-            # 이미지로 저장
-            plt.savefig(f'predicted_vs_actual_epoch_{epoch+1}.png')
-
+            print(f"Model saved with Validation Loss: {best_val_loss}")
         else:
             patience_counter += 1
 

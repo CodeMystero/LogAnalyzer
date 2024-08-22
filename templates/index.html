@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-time Monitoring</title>
+    <title>Log-Anomaly Real-time Monitoring</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .container {
@@ -90,7 +90,7 @@
 </head>
 
 <body>
-    <h1 style="text-align: center;">Real-time Monitoring</h1>
+    <h1 style="text-align: center;">Log-anomaly Real-time Monitoring</h1>
     <div class="container">
         <div class="upper-section">
             <canvas id="boundsChart"></canvas>
@@ -156,9 +156,9 @@
                         position: 'bottom'
                     }
                 },
-                <!-- animation: { -->
-                    <!-- duration: 0 // 애니메이션 제거 -->
-                <!-- }, -->
+                animation: {
+                    duration: 0 // 애니메이션 제거
+                },
                 <!-- elements: { -->
                     <!-- line: { -->
                         <!-- tension: 0 // 직선 연결 -->
@@ -269,7 +269,7 @@
         // Y축 조정 함수 끝 ################
 
 
-        setInterval(fetchData, 100); // 0.1초마다 데이터 가져오기
+        setInterval(fetchData, 10); // 0.1초마다 데이터 가져오기
 		
 		// 1분마다 Y축 조정하기 시작 ################
         //setInterval(adjustYAxis, 60000); // 60000ms = 1분

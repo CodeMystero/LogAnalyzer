@@ -126,7 +126,7 @@ class LSTMInference_tf:
         return predicted_value[0][0]
 
 class LSTMInferenceTorch:
-    def __init__(self, model_path="best_lstm_model.pth", n_steps=50, device=None):
+    def __init__(self, model_path="best_lstm_model_1_7_2_3.pth", n_steps=200, device=None):
         # 모델 경로
         model_path = os.path.join(os.getcwd(), model_path)
 
@@ -150,7 +150,7 @@ class LSTMInferenceTorch:
         """
         모델을 로드하고 평가 모드로 설정합니다.
         """
-        model = LSTMModel(input_size=1, hidden_size=128, num_layers=3)  # 모델 구조는 학습에 사용된 구조와 동일해야 함
+        model = LSTMModel(input_size=1, hidden_size=512, num_layers=3)  # 모델 구조는 학습에 사용된 구조와 동일해야 함
         model.load_state_dict(torch.load(model_path))
         model.to(self.device)
         model.eval()
@@ -270,7 +270,7 @@ class LSTMModel(nn.Module):
         super(LSTMModel, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.bn1 = nn.BatchNorm1d(hidden_size)
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0)
         self.fc = nn.Linear(hidden_size, 1)
 
     def forward(self, x):

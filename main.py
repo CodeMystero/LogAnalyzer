@@ -8,6 +8,15 @@ from logPreprocessing import logClassifier, pattern_features
 from algorithmLog import movingAverage
 from LSTMmodelling import LSTMinference
 
+####### Condition 객체를 사용한 buffer 관리 추가 ########
+buffer_lock = threading.Lock()
+buffer_not_full = threading.Condition(buffer_lock)
+buffer_not_empty = threading.Condition(buffer_lock)
+
+# buffer max length
+BUFFER_SIZE = 10000
+####### Condition 객체를 사용한 buffer 관리 추가 끝 ########
+
 
 ##########################################################################
 from flask import Flask, render_template, jsonify
@@ -37,11 +46,11 @@ def start_flask_app():
 #############################################################################
 
 classifier = logClassifier.LogClassifier()
-LSTMinfer = LSTMinference.LSTMInference() 
+LSTMinfer = LSTMinference.LSTMInferenceTorch() 
 
 buffer_lock = threading.Lock()
 
-detector = movingAverage.TimeSeriesAnomalyDetector(window_size=60)
+detector = movingAverage.TimeSeriesAnomalyDetector(window_size=200)
 directory = "log_groups/common_features"
 file_name = "extracted_common_times.csv"
 file_path = os.path.join(directory, file_name)
@@ -55,16 +64,29 @@ def send_log_to_buffer_with_interval(file_path, buffer):
     
     with open(file_path, 'r') as file:
         file.seek(0)  # 파일 포인터를 처음으로 이동
+        ####### 버퍼가 가득 찼을 때 대기하는 로직 추가 ########
         for line in file:
-            with buffer_lock:  # 락을 사용하여 버퍼에 안전하게 접근
-                buffer.append(line.strip())
-                #print(line)
-            #print(f"Line added to buffer: {line.strip()}")
-            time.sleep(0.005)  # 지정된 시간 간격 동안 대기
+            with buffer_not_full:  # 버퍼에 여유 공간이 있을 때까지 대기
+                while len(buffer) >= BUFFER_SIZE:
+                    buffer_not_full.wait()
+
+                with buffer_lock:  # 락을 사용하여 버퍼에 안전하게 접근
+                    buffer.append(line.strip())
+                    buffer_not_empty.notify()  # 버퍼가 비어 있지 않음을 알림
+
+            time.sleep(0)  # 지정된 시간 간격 동안 대기
+        ####### 버퍼가 가득 찼을 때 대기하는 로직 추가 끝 ########        
+        
+        # for line in file:
+            # with buffer_lock:  # 락을 사용하여 버퍼에 안전하게 접근
+                # buffer.append(line.strip())
+                # #print(line)
+            # #print(f"Line added to buffer: {line.strip()}")
+            # time.sleep(0.0001)  # 지정된 시간 간격 동안 대기
 
 def start_log_reader_with_interval(buffer): # 인터벌 여기
     buffer.clear()
-    file_path = 'MeasurementDAQLog_20240730.log'
+    file_path = 'MeasurementDAQLog_20240722.log'
     log_thread = threading.Thread(target=send_log_to_buffer_with_interval, args=(file_path, buffer))
     log_thread.daemon = True  # 메인 스레드가 종료되면 이 스레드도 종료
     log_thread.start()
@@ -74,15 +96,29 @@ def log_classifier_():
     global classifier
     global positive_pattern
     
-        # 버퍼가 비어 있으면 대기
+    ####### 버퍼가 비었을 때 대기하는 로직 추가 ########
     while True:
-        with buffer_lock:
-            if buffer:
+        with buffer_not_empty:
+            while not buffer:
+                buffer_not_empty.wait()
+
+            with buffer_lock:
                 example_log = buffer.popleft()  # 버퍼에서 가장 오래된 로그를 가져옴
-                break  # while 루프를 빠져나옴
+                buffer_not_full.notify()  # 버퍼에 여유 공간이 생겼음을 알림
+                break
         
-        # 버퍼가 비어 있으면 0.1초 대기 후 다시 시도
-        time.sleep(0.1)
+        time.sleep(0.001)  # 버퍼가 비어 있으면 0.1초 대기 후 다시 시도
+    ####### 버퍼가 비었을 때 대기하는 로직 추가 끝 ########
+    
+    # # 버퍼가 비어 있으면 대기
+    # while True:
+        # with buffer_lock:
+            # if buffer:
+                # example_log = buffer.popleft()  # 버퍼에서 가장 오래된 로그를 가져옴
+                # break  # while 루프를 빠져나옴
+        
+        # # 버퍼가 비어 있으면 0.1초 대기 후 다시 시도
+        # time.sleep(0.1)
     
     group, score = classifier.classify_log(example_log)
     group_num = LSTMinfer.sentence_to_group_number(group)
@@ -97,35 +133,6 @@ def pattern_features_(log, group_num):
     common_time_extractor = pattern_features.CommonTimeExtractor()
     common_time_extractor.add_feature(new_log_line)
     
-    
-    
-    
-    # if group == "group_1.txt":
-        # pass
-            
-    # elif group == "group_2.txt":
-        # group2_extractor = pattern_features.Group2Extractor(group_number=2)
-        # new_log_line = log
-        # group2_extractor.add_feature(new_log_line)
-        # return group_num
-    # elif group == "group_3.txt":
-        # pass
-        
-    # elif group == "group_4.txt":
-        # pass
-    
-    # elif group == "group_5.txt":
-        # pass
-        
-    # elif group == "group_6.txt":
-        # pass
-        
-    # elif group == "group_7.txt":
-        # pass
-        
-    # elif group == "group_8.txt":
-        # pass
-        
 def moving_average_():
     global detector 
     global directory 
@@ -153,7 +160,7 @@ def LSTM_inference_():
     next_value = LSTMinfer.predict_next_value()
     update_infered_result(next_value)
     # LSTM 예측 값과 positive_pattern 비교
-    tolerance = 2  # 허용 오차 설정
+    tolerance = 5  # 허용 오차 설정
     
     
     #print(f'previous value : {values["previous"]}')
@@ -170,7 +177,7 @@ def LSTM_inference_():
     
     
 def log_anomaly(log, lstm_result, result):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240730.log'
+    log_file_path = 'anomaly_MeasurementDAQLog_20240722.log'
     with open(log_file_path, 'a') as log_file:
         if lstm_result == 1 and result == 1:
             log_file.write("#############################################################################################################################################################\n")
@@ -178,13 +185,12 @@ def log_anomaly(log, lstm_result, result):
             log_file.write("#############################################################################################################################################################\n")
             log_file.write(log + "\n")
             log_file.write("#############################################################################################################################################################\n")
-            log_file.write("########################## anomaly detected ############################################################# anomaly detected ##################################\n")
-            log_file.write("#############################################################################################################################################################\n")
+
         else:
             log_file.write(log + "\n")
     
 if __name__ == "__main__":
-    buffer = deque(maxlen=10000)
+    buffer = deque(maxlen=BUFFER_SIZE)
     start_log_reader_with_interval(buffer)
     
     flask_thread = threading.Thread(target=start_flask_app)
