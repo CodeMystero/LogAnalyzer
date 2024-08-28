@@ -5,6 +5,7 @@ import os
 from collections import deque
 import torch
 import torch.nn as nn
+import time
 
 # 현재 파일의 디렉토리의 상위 디렉토리를 경로에 추가
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -126,7 +127,7 @@ class LSTMInference_tf:
         return predicted_value[0][0]
 
 class LSTMInferenceTorch:
-    def __init__(self, model_path="best_lstm_model_1_7_2_3.pth", n_steps=200, device=None):
+    def __init__(self, model_path="best_lstm_model_2_1.pth", n_steps=200, device=None):
         # 모델 경로
         model_path = os.path.join(os.getcwd(), model_path)
 
@@ -144,7 +145,7 @@ class LSTMInferenceTorch:
 
         # 정규화 범위 설정
         self.min_value = 1
-        self.max_value = 50
+        self.max_value = 6
 
     def load_model(self, model_path):
         """
@@ -244,7 +245,8 @@ class LSTMInferenceTorch:
         """
         normalized_number = self.normalize_value(number)
         self.sequence_queue.append(normalized_number)
-
+        # print(self.sequence_queue)
+            
     def predict_next_value(self):
         """
         현재 큐에 있는 그룹 번호 시퀀스를 입력으로 받아 다음 값을 예측하는 함수.
@@ -257,11 +259,16 @@ class LSTMInferenceTorch:
         
         sequence = np.array(padded_sequence).reshape((1, self.n_steps, 1))
         sequence = torch.tensor(sequence, dtype=torch.float32).to(self.device)
-
+        
+        start_time = time.time()
         # 예측 수행
         with torch.no_grad():
             predicted_value = self.model(sequence)
+        end_time = time.time()  # 코드 실행 후 시간 기록
 
+        elapsed_time = end_time - start_time  # 실행 시간 계산
+        #print(f"실행 시간: {elapsed_time}초")
+        
         return self.denormalize_value(predicted_value.item())
 
 # LSTM 모델 정의 (PyTorch)

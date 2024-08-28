@@ -4,7 +4,7 @@ import threading
 from queue import Queue
 from datetime import datetime
 from collections import deque
-from logPreprocessing import logClassifier, pattern_features
+from logPreprocessing import logClassifier, pattern_features, classifying_only_desired_log
 from algorithmLog import movingAverage
 from LSTMmodelling import LSTMinference
 
@@ -14,11 +14,11 @@ buffer_not_full = threading.Condition(buffer_lock)
 buffer_not_empty = threading.Condition(buffer_lock)
 
 # buffer max length
-BUFFER_SIZE = 10000
+BUFFER_SIZE = 50000
 ####### Condition 객체를 사용한 buffer 관리 추가 끝 ########
 
 
-##########################################################################
+########################################################################## 플라스크 web UI
 from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
@@ -47,6 +47,7 @@ def start_flask_app():
 
 classifier = logClassifier.LogClassifier()
 LSTMinfer = LSTMinference.LSTMInferenceTorch() 
+desired_log_classifier = classifying_only_desired_log.desiredLogClassifier()
 
 buffer_lock = threading.Lock()
 
@@ -86,7 +87,7 @@ def send_log_to_buffer_with_interval(file_path, buffer):
 
 def start_log_reader_with_interval(buffer): # 인터벌 여기
     buffer.clear()
-    file_path = 'MeasurementDAQLog_20240722.log'
+    file_path = 'MeasurementDAQLog_20240730_B_1.log'
     log_thread = threading.Thread(target=send_log_to_buffer_with_interval, args=(file_path, buffer))
     log_thread.daemon = True  # 메인 스레드가 종료되면 이 스레드도 종료
     log_thread.start()
@@ -160,11 +161,11 @@ def LSTM_inference_():
     next_value = LSTMinfer.predict_next_value()
     update_infered_result(next_value)
     # LSTM 예측 값과 positive_pattern 비교
-    tolerance = 5  # 허용 오차 설정
+    tolerance = 1  # 허용 오차 설정
     
     
-    #print(f'previous value : {values["previous"]}')
-    #print(f'positive_pattern : {positive_pattern}')
+    # print(f'previous value : {values["previous"]}')
+    # print(f'positive_pattern : {positive_pattern}')
 
     if abs(values["previous"] - positive_pattern) <= tolerance:
         LSTM_result = 0  # 예측 값이 실제 값과 거의 같은 경우
@@ -176,20 +177,25 @@ def LSTM_inference_():
     return LSTM_result
     
     
+def write_log(log):
+    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1.log'
+    with open(log_file_path, 'a') as log_file:
+        log_file.write(log + "\n")
+    
 def log_anomaly(log, lstm_result, result):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240722.log'
+    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1.log'
     with open(log_file_path, 'a') as log_file:
         if lstm_result == 1 and result == 1:
-            log_file.write("#############################################################################################################################################################\n")
+            log_file.write("=============================================================================================================================================================\n")
             log_file.write("########################## anomaly detected ############################################################# anomaly detected ##################################\n")
-            log_file.write("#############################################################################################################################################################\n")
+            log_file.write("=============================================================================================================================================================\n")
             log_file.write(log + "\n")
-            log_file.write("#############################################################################################################################################################\n")
+            log_file.write("=============================================================================================================================================================\n")
 
         else:
             log_file.write(log + "\n")
     
-if __name__ == "__main__":
+def main_for_all_logs():
     buffer = deque(maxlen=BUFFER_SIZE)
     start_log_reader_with_interval(buffer)
     
@@ -215,7 +221,86 @@ if __name__ == "__main__":
         log_anomaly(log, LSTM_result, result)
             
         result = 0 
+     
+def main_for_classified_logs():
+    buffer = deque(maxlen=BUFFER_SIZE)
+    start_log_reader_with_interval(buffer)
+    
+    global desired_log_classifier
+    global positive_pattern
+    
+    regex_patterns = [
+        r'\d{2}:\d{2}:\d{2}\.\d{6} PC<-M#\d{2}',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} PC<-API : .*MsgL=\d+,.*ProVer=10002.*',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} PC->API : .*MsgL=\d+,.*ProVer=10003.*',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV .*RawData.*',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV .*SpecNPara.*',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV'
+    ]
+    
+    # flask_thread = threading.Thread(target=start_flask_app)
+    # flask_thread.daemon = True
+    # flask_thread.start()
+    
+    time.sleep(0.2)
+    
+    count = 0
+    
+    while(True):
+        ####### 버퍼가 비었을 때 대기하는 로직 추가 ########
+        while True:
+            with buffer_not_empty:
+                while not buffer:
+                    buffer_not_empty.wait()
+
+                with buffer_lock:
+                    example_log = buffer.popleft()  # 버퍼에서 가장 오래된 로그를 가져옴
+                    buffer_not_full.notify()  # 버퍼에 여유 공간이 생겼음을 알림
+                    break
             
+            time.sleep(0.001)  # 버퍼가 비어 있으면 0.1초 대기 후 다시 시도
+        ####### 버퍼가 비었을 때 대기하는 로직 추가 끝 ########
+        
+        positive_pattern = desired_log_classifier.classify_single_log(example_log, regex_patterns)
+       
+        if positive_pattern == None:
+            write_log(example_log)
+            result = 0 
+            
+        elif positive_pattern in {1, 2, 3, 4, 5, 6}:
+            
+            pattern_features_(example_log, positive_pattern)
+            #start_time = time.time()
+            LSTM_result = LSTM_inference_()
+            #end_time = time.time()  # 코드 실행 후 시간 기록
+
+            #elapsed_time = end_time - start_time  # 실행 시간 계산
+            #print(f"실행 시간: {elapsed_time}초")
+            
+           
+            
+            shared_data["LSTM_result"] = LSTM_result
+            shared_data["log"] = example_log
+            
+            result, bounds, user_time_seconds = moving_average_()
+            shared_data["result"] = result
+            shared_data["bounds"] = bounds
+            shared_data["user_time_seconds"] = user_time_seconds
+            
+            if count > 200:
+                log_anomaly(example_log, LSTM_result, result)
+            else:
+                write_log(example_log)
+                count+=1
+                
+            result = 0 
+            
+        else:
+            print("올바른 분류값이 나오지 않았습니다")
+            result = 0 
+            
+if __name__ == "__main__":
+    main_for_classified_logs()        
         
             
     

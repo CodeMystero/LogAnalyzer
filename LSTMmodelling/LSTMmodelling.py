@@ -43,7 +43,7 @@ class LSTMModel(nn.Module):
 
 if __name__ == "__main__":
     # 데이터 준비
-    sequence_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logPreprocessing/group_sequence.txt")
+    sequence_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logPreprocessing/classified_number_sequence.txt")
     sequence = load_sequence(sequence_file)
 
     # LSTM 입력 데이터 준비
