@@ -87,7 +87,7 @@ def send_log_to_buffer_with_interval(file_path, buffer):
 
 def start_log_reader_with_interval(buffer): # 인터벌 여기
     buffer.clear()
-    file_path = 'MeasurementDAQLog_20240730_B_1.log'
+    file_path = 'MeasurementDAQLog_20240730.log'
     log_thread = threading.Thread(target=send_log_to_buffer_with_interval, args=(file_path, buffer))
     log_thread.daemon = True  # 메인 스레드가 종료되면 이 스레드도 종료
     log_thread.start()
@@ -161,7 +161,7 @@ def LSTM_inference_():
     next_value = LSTMinfer.predict_next_value()
     update_infered_result(next_value)
     # LSTM 예측 값과 positive_pattern 비교
-    tolerance = 1  # 허용 오차 설정
+    tolerance = 3  # 허용 오차 설정
     
     
     # print(f'previous value : {values["previous"]}')
@@ -174,20 +174,20 @@ def LSTM_inference_():
         
     LSTMinfer.add_number_to_queue(positive_pattern)   
     
-    return LSTM_result
+    return LSTM_result, values["previous"]
     
     
 def write_log(log):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1.log'
+    log_file_path = 'anomaly_MeasurementDAQLog_20240730.log'
     with open(log_file_path, 'a') as log_file:
         log_file.write(log + "\n")
     
 def log_anomaly(log, lstm_result, result):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1.log'
+    log_file_path = 'anomaly_MeasurementDAQLog_20240730.log'
     with open(log_file_path, 'a') as log_file:
         if lstm_result == 1 and result == 1:
-            log_file.write("=============================================================================================================================================================\n")
-            log_file.write("########################## anomaly detected ############################################################# anomaly detected ##################################\n")
+            log_file.write("======================================================================\n")
+            log_file.write("########################## anomaly detected ##########################\n")
             log_file.write("=============================================================================================================================================================\n")
             log_file.write(log + "\n")
             log_file.write("=============================================================================================================================================================\n")
@@ -195,6 +195,45 @@ def log_anomaly(log, lstm_result, result):
         else:
             log_file.write(log + "\n")
     
+    
+anomaly_log_counter = 1
+def addLSTMresultAnomalyOnLog(LSTM_result, example_log, predicted_value):
+    global anomaly_log_counter
+    log_file_path = 'anomaly_MeasurementDAQLog_20240730.log'
+    
+    
+    # 원하는 정규 표현식 패턴을 정의
+    regex_patterns = [
+        r'\d{2}:\d{2}:\d{2}\.\d{6} PC<-M#\d{2}',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} PC<-API : .*MsgL=\d+,.*ProVer=10002.*',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} PC->API : .*MsgL=\d+,.*ProVer=10003.*',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV .*RawData.*',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV .*SpecNPara.*',
+        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV'
+    ]
+    
+    # predicted_value를 반올림하고 정수로 변환
+    predicted_value = round(predicted_value)
+    predicted_value = int(predicted_value)
+    
+    
+    if predicted_value > 6:
+        predicted_value = 6
+    
+    if predicted_value < 1:
+        predicted_value = 1
+    
+    
+    with open(log_file_path, 'a', encoding='utf-8') as log_file:
+        log_file.write("\n")
+        log_file.write(f"{anomaly_log_counter} 번째 이상치 검출 : 아래의 위치에는 다음과 같은 패턴이 적용되어야 합니다 | {regex_patterns[predicted_value-1]}\n")
+        log_file.write("==================================================================================================================\n")
+        log_file.write(str(example_log) + "\n")
+        log_file.write("==================================================================================================================\n")
+        log_file.write("\n")
+    
+    anomaly_log_counter +=1
+        
 def main_for_all_logs():
     buffer = deque(maxlen=BUFFER_SIZE)
     start_log_reader_with_interval(buffer)
@@ -271,7 +310,7 @@ def main_for_classified_logs():
             
             pattern_features_(example_log, positive_pattern)
             #start_time = time.time()
-            LSTM_result = LSTM_inference_()
+            LSTM_result, predicted_value = LSTM_inference_()
             #end_time = time.time()  # 코드 실행 후 시간 기록
 
             #elapsed_time = end_time - start_time  # 실행 시간 계산
@@ -288,7 +327,15 @@ def main_for_classified_logs():
             shared_data["user_time_seconds"] = user_time_seconds
             
             if count > 200:
-                log_anomaly(example_log, LSTM_result, result)
+                if LSTM_result == 1:
+                    
+                    addLSTMresultAnomalyOnLog(LSTM_result,example_log, predicted_value)
+             
+                elif bounds[1] < user_time_seconds:
+                    pass
+                    
+                else:
+                    write_log(example_log)
             else:
                 write_log(example_log)
                 count+=1
