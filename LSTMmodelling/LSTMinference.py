@@ -127,7 +127,7 @@ class LSTMInference_tf:
         return predicted_value[0][0]
 
 class LSTMInferenceTorch:
-    def __init__(self, model_path="best_lstm_model_2_1.pth", n_steps=200, device=None):
+    def __init__(self, model_path="best_lstm_model_2_4.pth", n_steps=4, device=None):
         # 모델 경로
         model_path = os.path.join(os.getcwd(), model_path)
 
@@ -151,7 +151,7 @@ class LSTMInferenceTorch:
         """
         모델을 로드하고 평가 모드로 설정합니다.
         """
-        model = LSTMModel(input_size=1, hidden_size=512, num_layers=3)  # 모델 구조는 학습에 사용된 구조와 동일해야 함
+        model = LSTMModel(input_size=1, hidden_size=512, num_layers=4)  # 모델 구조는 학습에 사용된 구조와 동일해야 함
         model.load_state_dict(torch.load(model_path))
         model.to(self.device)
         model.eval()
@@ -174,69 +174,7 @@ class LSTMInferenceTorch:
         return value * (self.max_value - self.min_value) + self.min_value
 
 
-    def sentence_to_group_number(self, sentence):
-        """
-        문장을 그룹 번호로 변환하는 함수.
-        :param sentence: 입력 문장 (str)
-        :return: 그룹 번호 (int)
-        """
-        group_to_number = {
-            "group_1.txt": 1,
-            "group_2.txt": 2,
-            "group_3.txt": 3,
-            "group_4.txt": 4,
-            "group_5.txt": 5,
-            "group_6.txt": 6,
-            "group_7.txt": 7,
-            "group_8.txt": 8,
-            "group_9.txt": 9,
-            "group_10.txt": 10,
-            "group_11.txt": 11,
-            "group_12.txt": 12,
-            "group_13.txt": 13,
-            "group_14.txt": 14,
-            "group_15.txt": 15,
-            "group_16.txt": 16,
-            "group_17.txt": 17,
-            "group_18.txt": 18,
-            "group_19.txt": 19,
-            "group_20.txt": 20,
-            "group_21.txt": 21,
-            "group_22.txt": 22,
-            "group_23.txt": 23,
-            "group_24.txt": 24,
-            "group_25.txt": 25,
-            "group_26.txt": 26,
-            "group_27.txt": 27,
-            "group_28.txt": 28,
-            "group_29.txt": 29,
-            "group_30.txt": 30,
-            "group_31.txt": 31,
-            "group_32.txt": 32,
-            "group_33.txt": 33,
-            "group_34.txt": 34,
-            "group_35.txt": 35,
-            "group_36.txt": 36,
-            "group_37.txt": 37,
-            "group_38.txt": 38,
-            "group_39.txt": 39,
-            "group_40.txt": 40,
-            "group_41.txt": 41,
-            "group_42.txt": 42,
-            "group_43.txt": 43,
-            "group_44.txt": 44,
-            "group_45.txt": 45,
-            "group_46.txt": 46,
-            "group_47.txt": 47,
-            "group_48.txt": 48,
-            "group_49.txt": 49,
-            "group_50.txt": 50,
-        }
-
-        if sentence in group_to_number:
-            return group_to_number[sentence]
-        else:
-            raise ValueError(f"Sentence '{sentence}' does not match any group.")
+    
 
     def add_number_to_queue(self, number):
         """

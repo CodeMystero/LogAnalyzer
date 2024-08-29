@@ -28,7 +28,7 @@ class LSTMModel(nn.Module):
         super(LSTMModel, self).__init__()
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.bn1 = nn.BatchNorm1d(hidden_size)
-        self.dropout = nn.Dropout(0)
+        self.dropout = nn.Dropout(0.1)
         self.fc = nn.Linear(hidden_size, 1)
 
     def forward(self, x):
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     sequence = load_sequence(sequence_file)
 
     # LSTM 입력 데이터 준비
-    n_steps = 200  # 입력 시퀀스의 길이
+    n_steps = 4  # 입력 시퀀스의 길이
     X, y = create_dataset(sequence, n_steps)
     
     # 데이터 스케일링 (0과 1 사이로 정규화)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # 모델 정의
     input_size = 1
     hidden_size = 512
-    num_layers = 3
+    num_layers = 4
     model = LSTMModel(input_size, hidden_size, num_layers).to(device)
 
     # Adam 옵티마이저에 학습률 설정
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0)
 
     # StepLR 스케줄러 추가: 50 에포크마다 학습률을 0.1배로 줄입니다.
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
     ############# L2 정규화 및 학습률 스케줄링 추가 끝 #############
     
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     # 학습
     num_epochs = 500
     best_val_loss = float('inf')
-    patience = 50
+    patience = 20
     patience_counter = 0
 
     for epoch in range(num_epochs):
