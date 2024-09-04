@@ -15,7 +15,7 @@ sys.path.append(parent_dir)
 from logPreprocessing import logClassifier
 
 class LSTMInference_tf:
-    def __init__(self, model_path="lstm_model.h5", n_steps=50):
+    def __init__(self, model_path="Model/lstm_model.h5", n_steps=50):
         
         model_path = os.path.join(current_dir, model_path)
         
@@ -127,7 +127,7 @@ class LSTMInference_tf:
         return predicted_value[0][0]
 
 class LSTMInferenceTorch:
-    def __init__(self, model_path="best_lstm_model_2_4.pth", n_steps=4, device=None):
+    def __init__(self, model_path="Model/best_lstm_model_2_4.pth", n_steps=4, device=None):
         # 모델 경로
         model_path = os.path.join(os.getcwd(), model_path)
 

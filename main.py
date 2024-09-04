@@ -46,7 +46,8 @@ def start_flask_app():
 
 #############################################################################
 
-classifier = logClassifier.LogClassifier()
+# classifier = logClassifier.LogClassifier() 
+
 LSTMinfer = LSTMinference.LSTMInferenceTorch() 
 desired_log_classifier = classifying_only_desired_log.desiredLogClassifier()
 
@@ -88,7 +89,7 @@ def send_log_to_buffer_with_interval(file_path, buffer):
 
 def start_log_reader_with_interval(buffer): # 인터벌 여기
     buffer.clear()
-    file_path = 'MeasurementDAQLog_20240730_B_1.log'
+    file_path = 'Data/MeasurementDAQLog_20240730_B_1.log'
     log_thread = threading.Thread(target=send_log_to_buffer_with_interval, args=(file_path, buffer))
     log_thread.daemon = True  # 메인 스레드가 종료되면 이 스레드도 종료
     log_thread.start()
@@ -179,13 +180,13 @@ def LSTM_inference_():
         
 def write_log(log):
     now = datetime.now()
-    log_file_path = 'anomaly_MeasurementDAQLog_' + now.strftime("%Y%m%d_%H%M%S") + '.log'
+    log_file_path = 'Output/anomaly_MeasurementDAQLog_' + now.strftime("%Y%m%d") + '.log'
     with open(log_file_path, 'a') as log_file:
         log_file.write(log + "\n")    
     
 def addLSTMresultDelayAnomalyOnLog(LSTM_result, predicted_value, maxValue, userTime, example_log):
     now = datetime.now()
-    log_file_path = 'anomaly_MeasurementDAQLog_' + now.strftime("%Y%m%d_%H%M%S") + '.log'
+    log_file_path = 'Output/anomaly_MeasurementDAQLog_' + now.strftime("%Y%m%d") + '.log'
     
     global anomaly_log_counter
     
@@ -227,7 +228,9 @@ def addLSTMresultDelayAnomalyOnLog(LSTM_result, predicted_value, maxValue, userT
 anomaly_log_counter = 1
 def addLSTMresultAnomalyOnLog(LSTM_result, example_log, predicted_value):
     global anomaly_log_counter
-    log_file_path = 'output/anomaly_MeasurementDAQLog_20240730_B_1_2.log'
+
+    now = datetime.now()
+    log_file_path = 'Output/anomaly_MeasurementDAQLog_' + now.strftime("%Y%m%d") + '.log'
     
     
     # 원하는 정규 표현식 패턴을 정의
@@ -265,8 +268,9 @@ def addLSTMresultAnomalyOnLog(LSTM_result, example_log, predicted_value):
       
 
 def addDelayAnomalyOnLog(maxValue, userTime, example_log):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1_2.log'
     global anomaly_log_counter
+    now = datetime.now()
+    log_file_path = 'Output/anomaly_MeasurementDAQLog_' + now.strftime("%Y%m%d") + '.log'
     
     time_exceeded = userTime - maxValue
     
