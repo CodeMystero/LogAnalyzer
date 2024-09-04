@@ -7,6 +7,7 @@ from collections import deque
 from logPreprocessing import logClassifier, pattern_features, classifying_only_desired_log
 from algorithmLog import movingAverage
 from LSTMmodelling import LSTMinference
+from datetime import datetime
 
 ####### Condition 객체를 사용한 buffer 관리 추가 ########
 buffer_lock = threading.Lock()
@@ -175,19 +176,16 @@ def LSTM_inference_():
     LSTMinfer.add_number_to_queue(positive_pattern)   
     
     return LSTM_result, next_value
-    
+        
 def write_log(log):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1_2.log'
+    now = datetime.now()
+    log_file_path = 'anomaly_MeasurementDAQLog_' + now.strftime("%Y%m%d_%H%M%S") + '.log'
     with open(log_file_path, 'a') as log_file:
         log_file.write(log + "\n")    
     
-def write_log_filtered(log):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1_2.log'
-    with open(log_file_path, 'a') as log_file:
-        log_file.write("[PATTERN CHOSEN] " + log + "\n")
-    
 def addLSTMresultDelayAnomalyOnLog(LSTM_result, predicted_value, maxValue, userTime, example_log):
-    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1_2.log'
+    now = datetime.now()
+    log_file_path = 'anomaly_MeasurementDAQLog_' + now.strftime("%Y%m%d_%H%M%S") + '.log'
     
     global anomaly_log_counter
     
@@ -229,7 +227,7 @@ def addLSTMresultDelayAnomalyOnLog(LSTM_result, predicted_value, maxValue, userT
 anomaly_log_counter = 1
 def addLSTMresultAnomalyOnLog(LSTM_result, example_log, predicted_value):
     global anomaly_log_counter
-    log_file_path = 'anomaly_MeasurementDAQLog_20240730_B_1_2.log'
+    log_file_path = 'output/anomaly_MeasurementDAQLog_20240730_B_1_2.log'
     
     
     # 원하는 정규 표현식 패턴을 정의
@@ -392,11 +390,11 @@ def main_for_classified_logs():
                     
                 else: 
                     
-                    write_log_filtered(example_log)
+                    write_log("[PATTERN CHOSEN]" + example_log)
                     
             else:
                 
-                write_log_filtered(example_log)
+                write_log("[PATTERN CHOSEN]" + example_log)
                 count+=1
                 
             result = 0 
@@ -405,6 +403,8 @@ def main_for_classified_logs():
             
             print("올바른 분류값이 나오지 않았습니다")
             result = 0 
+            
+
             
 if __name__ == "__main__":
     main_for_classified_logs()        
