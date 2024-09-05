@@ -802,3 +802,8 @@ log_groups/pattern_features/extracted_features_group_2.csv
 logPreprocessing/classified_group_sequence.txt
 logPreprocessing/classified_number_sequence.txt
 logPreprocessing/group_sequence.txt
+Algorithm/LSTMmodelling/trial2 0.051/best_lstm_model.pth
+LogAnalyzer/PacketAnalyzerExamCpp/log_groups/common_features/extracted_common_times.csv
+Algorithm/templates/index.html
+Algorithm/logPreprocessing/classified_group_sequence.txt
+Algorithm/logPreprocessing/classified_number_sequence.txt

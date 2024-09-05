@@ -90,12 +90,15 @@ void LogAnalyzer::initializePythonModule()
 	std::filesystem::path module_path = parent_path; // main.py가 위치한 디렉토리
 
 	// Python 모듈 경로에 추가
-	py::module sys = py::module::import("sys");
-	py::object path = sys.attr("path");
-	path.attr("append")(module_path.string());  // 모듈이 위치한 상위 폴더 경로를 추가
+	//py::module sys = py::module::import("sys");
+	//py::object path = sys.attr("path");
+	//path.attr("append")(module_path.string());  // 모듈이 위치한 상위 폴더 경로를 추가
+
 
 	// Python 모듈 임포트
 	try {
+		py::module::import("sys").attr("path").attr("append")(module_path.string());
+
 		py::module mymodule = py::module::import("main");  // main.py의 모듈 이름
 		// Python 함수 호출
 		py::object result = mymodule.attr("myfunction")(10);
