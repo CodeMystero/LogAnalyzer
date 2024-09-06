@@ -61,27 +61,4 @@ class desiredLogClassifier:
         for idx, pattern in enumerate(regex_patterns, start=1):
             if re.search(pattern, log_line):
                 return idx
-        return None  # 어떤 패턴에도 매칭되지 않으면 None을 반환
-
-if __name__ == "__main__":
-    log_file_path = 'MeasurementDAQLog_20240730.log'
-    output_file_path = 'classified_group_sequence.txt'
-    number_file_path = 'classified_number_sequence.txt'
-    
-    # 원하는 정규 표현식 패턴을 정의
-    regex_patterns = [
-        r'\d{2}:\d{2}:\d{2}\.\d{6} PC<-M#\d{2}',
-        r'\d{2}:\d{2}:\d{2}\.\d{6} PC<-API : .*MsgL=\d+,.*ProVer=10002.*',
-        r'\d{2}:\d{2}:\d{2}\.\d{6} PC->API : .*MsgL=\d+,.*ProVer=10003.*',
-        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV .*RawData.*',
-        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV .*SpecNPara.*',
-        r'\d{2}:\d{2}:\d{2}\.\d{6} M#\d{2} Save CSV'
-    ]
-    
-    log_classifier = LogClassifier(log_file_path, max_lines=60000)
-    classified_logs, classified_numbers = log_classifier.classify_logs(regex_patterns)
-    
-    if classified_logs:
-        log_classifier.save_classified_logs(classified_logs, classified_numbers, output_file_path, number_file_path)
-    else:
-        print("No matching logs found.")
+        return 0  # 어떤 패턴에도 매칭되지 않으면 None을 반환

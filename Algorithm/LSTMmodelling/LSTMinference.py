@@ -1,18 +1,17 @@
 import numpy as np
 import sys
-from keras.models import load_model
 import os
 from collections import deque
 import torch
 import torch.nn as nn
 import time
 
+
 # 현재 파일의 디렉토리의 상위 디렉토리를 경로에 추가
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from logPreprocessing import logClassifier
 
 class LSTMInferenceTorch:
     def __init__(self, model_path="D:/9999.Code/AnalyticsLog/Model/best_lstm_model_2_4.pth", n_steps=4, device=None):
